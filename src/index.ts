@@ -10,6 +10,14 @@ const app = express();
 const port = process.env.PORT || 3000;
 app.use(express.json());
 
+// define interfaces for our data
+interface Task {
+  id: string;
+  text: string;
+  isDone: boolean;
+  userId: string;
+}
+
 // Connect to MongoDB
 const uri = process.env.MONGODB_URI || '';
 const prisma = new PrismaClient();
@@ -17,21 +25,8 @@ prisma.$connect()
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.log(err));
 
-async function getAllUsers() {
-  const allUsers = await prisma.users.findMany();
-  console.log(allUsers);
-}
-
-async function getAllTasks() {
-  const allTasks = await prisma.tasks.findMany();
-  console.log(allTasks);
-}
-
-
-
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello, TypeScript Express!');
-  getAllUsers();
   //getAllTasks();
 });
 
@@ -68,7 +63,6 @@ app.post('/register', async (req: Request, res: Response) => {
 app.post('/login', async (req: Request, res: Response) => {
   // have to hash password before storing in database
   const { email, password } = req.body;
-  console.log(email, password);
   // check if user exists
   const found = await prisma.users.findFirst({
     where: {
@@ -97,7 +91,6 @@ app.post('/login', async (req: Request, res: Response) => {
 
 app.post('/tasksById', async (req: Request, res: Response) => {
   const { userId } = req.body;
-  console.log(userId);
   const allTasks = await prisma.tasks.findMany(
     {
       where: {
@@ -105,7 +98,6 @@ app.post('/tasksById', async (req: Request, res: Response) => {
       }
     }
   );
-  console.log(allTasks);
   res.status(200);
   res.json(allTasks);
   
@@ -113,7 +105,6 @@ app.post('/tasksById', async (req: Request, res: Response) => {
 
 app.post('/addTaskById', async (req: Request, res: Response) => {
   const { userId, text } = req.body;
-  console.log(userId, text);
   const newTask = await prisma.tasks.create({
     data: {
       userId: userId,
@@ -146,7 +137,6 @@ app.put('/toggleTaskStatusById', async (req: Request, res: Response) => {
 
 app.delete('/deleteTaskById', async (req: Request, res: Response) => {
   const { taskId } = req.body;
-  console.log(taskId);
   const deletedTask = await prisma.tasks.delete({
     where: {
       id: taskId
@@ -154,6 +144,20 @@ app.delete('/deleteTaskById', async (req: Request, res: Response) => {
   });
   res.status(200);
   res.json(deletedTask);
+});
+
+app.put('/editTaskById', async (req: Request, res: Response) => {
+  const { taskId, text } = req.body;
+  const updatedTask = await prisma.tasks.update({
+    where: {
+      id: taskId
+    },
+    data: {
+      text: text
+    }
+  });
+  res.status(200);
+  res.json(updatedTask);
 });
 
 app.listen(port, () => {
